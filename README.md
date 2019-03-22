@@ -8,8 +8,89 @@ JOBridge之二JS注册类和访问所有Native方法（可用代替JSPatch） ht
 JOBridge之三C函数OC化和语法增加以及优化（可用代替JSPatch）  https://www.jianshu.com/p/c1161f61ed96
 
 # 使用方法
-OC只需要
-```
+OC端：
+1、执行js
+```Objective-C
     [JOBridge bridge];//初始化
     [JOBridge evaluateScript:script];//执行js
 ```
+2、扩展C方法和变量
+```Objective-C
+
+#if __arm64__
+
+#import "JOCPlugin.h"
+#import "JOObject.h"
+#import <JavaScriptCore/JavaScriptCore.h>
+
+void test(id obj) {
+    NSLog(@"%@", obj);
+}
+
+static NSMutableDictionary *JOTest;
+
+@implementation JOCPlugin
++ (void)load {
+    [self registerPlugin];
+}
+
++ (void)initPlugin {
+    JOMapCFunction(test, JOSigns(void, id));
+    [self registerObject:JOMakeObj([self class]) name:@"JC" needTransform:YES];
+}
+
+@end
+
+@interface JOCPluginTest : JOCFunction
+@end
+
+
+@implementation JOCPluginTest
++ (void)load {
+    JOTest = [NSMutableDictionary dictionary];
+    [self registerPlugin];
+}
+
++ (void)initPlugin {
+    
+    JOMapCFunction(test, JOSigns(void, id));
+    [self registerObject:JOMakeObj([self class]) name:@"JCTest" needTransform:YES];
+}
+
++ (NSMutableDictionary *)pluginStore {
+    return JOTest;
+}
+@end
+
+
+@interface JOCPluginTest1 : JOPluginBase
+@end
+
+
+static NSMutableDictionary *JOTest1;
+
+@implementation JOCPluginTest1
++ (void)load {
+    JOTest1 = [NSMutableDictionary dictionary];
+    [self registerPlugin];
+}
+
++ (void)initPlugin {
+    [self pluginStore][@"RGB"] = ^(JSValue *jsvalue) {
+        uint32_t hex = [jsvalue toUInt32] ;
+        return JOMakeObj([UIColor colorWithRed:(((hex & 0xFF0000) >> 16))/255.0 green:(((hex & 0xFF00) >> 8))/255.0 blue:((hex & 0xFF))/255.0 alpha:1.0]);
+    };
+    
+    [self registerObject:[self pluginStore] name:@"JGTest" needTransform:NO];
+
+}
+
++ (NSMutableDictionary *)pluginStore {
+    return JOTest1;
+}
+@end
+#endif
+
+```
+
+JS端：
