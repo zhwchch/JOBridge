@@ -14,14 +14,21 @@ OC端：
     [JOBridge bridge];//初始化
     [JOBridge evaluateScript:script];//执行js
 ```
-2、扩展C方法和变量
+2、扩展C方法。
+第一种不替换存储字典，放在全局默认C方法容器对象JC下，在js中用JC.test()访问。其中needTransform表示是否使用通用调用桥处理参数和调用。
 ```Objective-C
 
 #if __arm64__
 
+#import "JOCFunction.h"
+
 #import "JOCPlugin.h"
 #import "JOObject.h"
 #import <JavaScriptCore/JavaScriptCore.h>
+
+@interface JOCPlugin : JOCFunction
+@end
+
 
 void test(id obj) {
     NSLog(@"%@", obj);
@@ -34,16 +41,26 @@ static NSMutableDictionary *JOTest;
     [self registerPlugin];
 }
 
-+ (void)initPlugin {
++ (void)initPlugin {//重写本方法，JOBridge初始化时会调用本方法注册
     JOMapCFunction(test, JOSigns(void, id));
     [self registerObject:JOMakeObj([self class]) name:@"JC" needTransform:YES];
 }
-
 @end
+
+```
+第二种替换存储字典（需要重写pluginStore方法），其放在JCTest下，在js中用JCTest.test()访问。其中needTransform表示是否使用通用调用桥处理参数和调用。
+
+```Objective-C
 
 @interface JOCPluginTest : JOCFunction
 @end
 
+
+void test(id obj) {
+    NSLog(@"%@", obj);
+}
+
+static NSMutableDictionary *JOTest;
 
 @implementation JOCPluginTest
 + (void)load {
@@ -61,7 +78,11 @@ static NSMutableDictionary *JOTest;
     return JOTest;
 }
 @end
+```
+3、扩展全局常量
+放在JCTest1下（需要重写pluginStore方法），在js中用JCTest1.RGB(), JCTest1.RED_VALUE 访问。其中needTransform表示是否使用通用调用桥处理参数和调用，这不使用，所以这里需要自己解析参数组装参数，可以比较灵活的实现。
 
+```Objective-C
 
 @interface JOCPluginTest1 : JOPluginBase
 @end
@@ -80,8 +101,8 @@ static NSMutableDictionary *JOTest1;
         uint32_t hex = [jsvalue toUInt32] ;
         return JOMakeObj([UIColor colorWithRed:(((hex & 0xFF0000) >> 16))/255.0 green:(((hex & 0xFF00) >> 8))/255.0 blue:((hex & 0xFF))/255.0 alpha:1.0]);
     };
-    
-    [self registerObject:[self pluginStore] name:@"JGTest" needTransform:NO];
+    [self pluginStore][@"RED_VALUE"] = @(0xFF0000);
+    [self registerObject:[self pluginStore] name:@"JGTest1" needTransform:NO];
 
 }
 
