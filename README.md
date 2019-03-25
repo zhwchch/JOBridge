@@ -9,12 +9,14 @@ JOBridge之三C函数OC化和语法增加以及优化（可用代替JSPatch）  
 
 # 使用方法
 OC端：
+
 1、执行js
 ```Objective-C
     [JOBridge bridge];//初始化
     [JOBridge evaluateScript:script];//执行js
 ```
 2、扩展C方法。
+
 第一种不替换存储字典，放在全局默认C方法容器对象JC下，在js中用JC.test()访问。其中needTransform表示是否使用通用调用桥处理参数和调用。
 ```Objective-C
 
@@ -79,7 +81,9 @@ static NSMutableDictionary *JOTest;
 }
 @end
 ```
+
 3、扩展全局常量
+
 放在JCTest1下（需要重写pluginStore方法），在js中用JCTest1.RGB(), JCTest1.RED_VALUE 访问。其中needTransform表示是否使用通用调用桥处理参数和调用，这不使用，所以这里需要自己解析参数组装参数，可以比较灵活的实现。
 
 ```Objective-C
